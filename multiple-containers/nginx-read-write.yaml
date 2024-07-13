@@ -3,7 +3,7 @@ kind: Pod
 metadata:
   name: mc1
   labels: 
-    owner: nitin
+    owner: kubeguru
 spec:
   volumes:
   - name: html
