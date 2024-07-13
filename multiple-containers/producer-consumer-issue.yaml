@@ -5,11 +5,11 @@ metadata:
 spec:
   containers:
   - name: producer
-    image: allingeek/ch6_ipc
+    image: kubebox85/producer-consumer
     command: ["/bin/sh","-c"]
     args: ["sleep 10 && ./ipc -producer"] 
 
   - name: consumer
-    image: allingeek/ch6_ipc
+    image: kubebox85/producer-consumer
     command: ["./ipc", "-consumer"]
   restartPolicy: Never
