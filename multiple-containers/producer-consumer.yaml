@@ -10,7 +10,7 @@ spec:
     args: ["./ipc -producer"]
 
   - name: consumer
-    image: allingeek/ch6_ipc
+    image: kubebox85/producer-consumer:latest
     command: ["/bin/sh","-c"]
     args: ["./ipc -consumer"]
   restartPolicy: Never
