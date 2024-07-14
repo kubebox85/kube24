@@ -3,12 +3,12 @@ kind: Pod
 metadata:
   name: git-container
   labels:
-    owner: nitin
+    owner: trainer
 spec:
       restartPolicy: Always
       containers:
       - name: main
-        image: nitinkansal/goldenimage:latest
+        image: kubebox85/goldenimage:latest
         volumeMounts:
         - name: service
           mountPath: /var/www
