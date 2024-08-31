@@ -1,0 +1,158 @@
+Follow the steps from the link to create user:
+https://kubernetes.io/docs/reference/access-authn-authz/certificate-signing-requests/#normal-user
+
+Create service account in kubernetes:
+kubectl create sa radical
+
+Create normal user in kubernetes:
+1. Create key using openssl
+openssl genrsa -out jane.key 2048
+
+2. Use key to create CSR, mentioning username while creating it
+openssl req -new -key jane.key -out jane.csr
+openssl req -new -key jane.key -out jane.csr > encoded_csr
+
+tr -d "[:space:]" < encoded_csr
+
+Example:
+cat <<EOF | kubectl apply -f -
+apiVersion: certificates.k8s.io/v1
+kind: CertificateSigningRequest
+metadata:
+  name: radical
+spec:
+  request: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQ256Q0NBWWNDQVFBd1dqRUxNQWtHQTFVRUJoTUNUbGt4Q3pBSkJnTlZCQWdNQWs1Wk1Rc3dDUVlEVlFRSApEQUpPV1RFUU1BNEdBMVVFQ2d3SFVtRmthV05oYkRFUU1BNEdBMVVFQ3d3SFVtRmthV05oYkRFTk1Bc0dBMVVFCkF3d0VhbUZ1WlRDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBTFFpSSszckZKc3EKdE1lcVdSZ0UyVVE1clN3NlI2M0Q0TW5XbHpic2RsUFRJSFR5WGJEZTQzVkFhaU95a3dGV0hxN2tVKzNOaTF1LwphcmZuckNqU0c2S3Vkc2hiNE5YKzlHZmZLTXVXd3E3VEgyZThZSDRnTndVUnMwR1R5OTRlaFErQ3NrTHpCVDREClQ2aUIvWVBPRjY0YTZSaThKdFVnUnJ2d2ZQVGlhSWQ3NGcxNlZUUi8xTVFkemVYaGpJWkxCQkYyVjVQTVhiR28KUTYwbUpGYnBsUmtUMUZVdmxWTnBRd1l6VUpXUmNaNk1SMUR5cDZiSU43VlRDSERXOG9XSER0a3ZrSkFZWGhZMAprTkxDYjBaVm1SZ256RFpEWFVmNmtIWW1nNlR5aGxjTUtzWEU0R3RLRFkyNUJlTDd3VEpacTA3cnNubG9SSDh1Cjd0YVlwNGhqUHBrQ0F3RUFBYUFBTUEwR0NTcUdTSWIzRFFFQkN3VUFBNElCQVFDcTBpdkg5c28vb0k1WjNVZlUKSmdDQUlEQUFNYmtxb0dYUVFMSS8xSVJmcnAyUVdFYmowaWJPUkgrbEZVVzNPL2UwWlJxOTRyeUhjT2ZZTUMxMApDOE5yL2g1YUhBMFNJQmlKSFI0Q1l5RVQ0ZGU0U013ZVB0QytrL1BvUU1VTEczdTNvT0lqeVVMUlQwRGhJdHUxCkF4d2VSQUI5RU5EeGhOandScFpodko2VHN5OXAxdnFPNU1xZmpXNjk3emhiMVI5dS9ia0hGWTdZU21zZmN1MWMKTk4yenpvbk9DTlNQdER1eDVYWjUzbGU3NGtGaHdBclhkT2RiWlJRS1d1K05FWjlZMkJzWU1JRDJSQ3NjbTZkZQpkK2F5eFBBVmVHOUE1ZURMRFZvUStMSEhRc3BaOXFOeGEyRTJ4RXlYeVpWdFhQakR3eXE0V2Z5ODNXMTlUMnBvCk5OZy8KLS0tLS1FTkQgQ0VSVElGSUNBVEUgUkVRVUVTVC0tLS0tCg==
+  signerName: kubernetes.io/kube-apiserver-client
+  expirationSeconds: 86400  # one day
+  usages:
+  - client auth
+EOF
+
+3. Send CSR to kubernetes apiserver
+
+root@master:~# kubectl get csr
+NAME      AGE   SIGNERNAME                            REQUESTOR          REQUESTEDDURATION   CONDITION
+radical   91s   kubernetes.io/kube-apiserver-client   kubernetes-admin   24h                 Pending
+root@master:~#
+root@master:~#
+root@master:~# kubectl certificate approve radical
+certificatesigningrequest.certificates.k8s.io/radical approved
+root@master:~#
+root@master:~#
+root@master:~#
+root@master:~#
+root@master:~# kubectl get csr
+NAME      AGE     SIGNERNAME                            REQUESTOR          REQUESTEDDURATION   CONDITION
+radical   2m24s   kubernetes.io/kube-apiserver-client   kubernetes-admin   24h                 Approved,Issued
+root@master:~#
+
+
+4. apiserver certificate
+
+kubectl get csr/radical -o yaml
+
+5. key+cert to authenticate as user to kubernetes
+
+Copy the certification from last command in to a file and then decode it using base64 -d command.
+
+root@master:~# vim encoded_cert
+root@master:~#
+root@master:~#
+root@master:~# cat encoded_cert | base64 -d
+-----BEGIN CERTIFICATE-----
+MIIDQDCCAiigAwIBAgIRAJ7q5VTREj3VG3xEEeLMZJ0wDQYJKoZIhvcNAQELBQAw
+FTETMBEGA1UEAxMKa3ViZXJuZXRlczAeFw0yNDA4MzEwNDIzNTJaFw0yNDA5MDEw
+NDIzNTJaMFoxCzAJBgNVBAYTAk5ZMQswCQYDVQQIEwJOWTELMAkGA1UEBxMCTlkx
+EDAOBgNVBAoTB1JhZGljYWwxEDAOBgNVBAsTB1JhZGljYWwxDTALBgNVBAMTBGph
+bmUwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC0IiPt6xSbKrTHqlkY
+BNlEOa0sOketw+DJ1pc27HZT0yB08l2w3uN1QGojspMBVh6u5FPtzYtbv2q356wo
+0huirnbIW+DV/vRn3yjLlsKu0x9nvGB+IDcFEbNBk8veHoUPgrJC8wU+A0+ogf2D
+zheuGukYvCbVIEa78Hz04miHe+INelU0f9TEHc3l4YyGSwQRdleTzF2xqEOtJiRW
+6ZUZE9RVL5VTaUMGM1CVkXGejEdQ8qemyDe1Uwhw1vKFhw7ZL5CQGF4WNJDSwm9G
+VZkYJ8w2Q11H+pB2JoOk8oZXDCrFxOBrSg2NuQXi+8EyWatO67J5aER/Lu7WmKeI
+Yz6ZAgMBAAGjRjBEMBMGA1UdJQQMMAoGCCsGAQUFBwMCMAwGA1UdEwEB/wQCMAAw
+HwYDVR0jBBgwFoAUpEh3Cr982prV16PUxbVJ86H514UwDQYJKoZIhvcNAQELBQAD
+ggEBACvdtfx1xAVfEF+Q8QVPMI6rbqwlM2rhYEAxn2QGaHaJtaERXsi3pY3tZwRM
+7yashj3bwIKuI6oe9Op6YwY8L4Js1iTLcmSLg4SjB6CuKwYZ2gtWH6dPVtBDJlUZ
+g5EGdonajsRLr4YG1yksh+/7+Lz4rQCOwJXkTV5a+9lC2cVLJPUI7kqMPAVLI2IM
+NHSrpLPgv3ZVHhuRNuqjcAw+ceBgCXvdqhaxSzJuYCbd0GmI/74VbievTOPSfvIz
+Q1fO4Rzcwy9T5Ob1I+/Yle28ns5ehJ96Uw6lkqj1RCUVDFrb/zSZomts/2PSDVVO
+7B8rjuAv9jXHnc6php6WKq3T29E=
+-----END CERTIFICATE-----
+root@master:~#
+
+cat encoded_cert | base64 -d > jane.crt
+
+6. I have key and certificate, which I will use to authenticate to kubernetes. Rememeber, there will no access by default. I will use RBAC to grant access to the user for kubernetes resources.
+
+
+
+Explain kubeconfig file:
+apiVersion: v1
+kind: Config
+preferences: {}
+
+clusters:
+- cluster:
+    certificate-authority-data: <>
+    server: https://10.2.0.4:6443
+  name: cluster1
+
+- cluster:
+    certificate-authority-data: <>
+    server: https://10.2.0.5:6443
+  name: cluster2
+
+users:
+- user:
+    client-certificate-data: 
+    client-key-data:
+  name: user1
+
+- user:
+    client-certificate-data: 
+    client-key-data:
+  name: user2
+
+
+contexts:
+- context:
+    cluster: cluster1
+    user: user1
+  name: ctx1
+
+- context:
+    cluster: cluster1
+    user: user2
+  name: ctx2
+
+- context:
+    cluster: cluster2
+    user: user1
+  name: ctx3
+
+- context:
+    cluster: cluster2
+    user: user2
+  name: ctx4
+
+current-context: ctx3
+
+
+#kubectl get pods
+#kubectl set current-context ctx2
+
+### ADD user in to kubeconfig file
+#Add user 
+kubectl config set-credentials jane --client-key=jane.key --client-certificate=jane.crt --embed-certs=true
+#Add context
+kubectl config set-context janecontext --cluster=kubernetes --user=jane
+#Change current context to janecontext
+root@master:~# kubectl config use-context janecontext
+Switched to context "janecontext".
+root@master:~#
+root@master:~#
+root@master:~# vim .kube/config
+root@master:~# kubectl config use-context kubernetes-admin@kubernetes
+Switched to context "kubernetes-admin@kubernetes".
+root@master:~#
