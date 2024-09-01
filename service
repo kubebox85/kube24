@@ -1,0 +1,44 @@
+AWS:
+1. Create IAM user with programmatic access.
+2. Generate access and secret keys
+3. Keep the keys on your clipboard
+
+1. Launch Azure VM - ubuntu 20.04
+
+2. Install aws cli
+Follow article
+https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+
+3. Configure IAM credential on VM
+aws configure
+
+accessKey:
+secretKey:
+
+4. Install eksctl
+https://eksctl.io/installation/
+
+5. Create EKS cluster
+https://docs.aws.amazon.com/eks/latest/userguide/getting-started-eksctl.html
+
+
+-----------
+svc.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    run: nginx
+  name: nginx
+  namespace: default
+spec:
+  ports:
+  - port: 8080                  ### ServicePort
+    protocol: TCP
+    targetPort: 80             ### Where application is running
+  selector:
+    run: nginx
+  type: ClusterIP            ##ClusterIP between pods
+  type: NodePort            ##Where user can access service using Nodehostname:port or NodeIP:<port>
+  type: LoadBalancer      ##Where user can access service using DNS name example: www.radical.com  
