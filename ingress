@@ -1,0 +1,69 @@
+1. Launch a virtual machine and install eksctl utlity and deploy AWS EKS cluster using eksctl
+
+https://eksctl.io/installation/
+
+# eksctl create cluster --name my-cluster --region us-east-1
+
+2. Install helm following the link
+
+https://helm.sh/docs/intro/install/
+
+3. Install ingress controller using below command:
+helm upgrade --install ingress-nginx ingress-nginx \
+  --repo https://kubernetes.github.io/ingress-nginx \
+  --namespace ingress-nginx --create-namespace
+
+4. Make sure ingress controller pod is running. Get the Load Balancer endpoint using below command.
+
+kubectl get pods -n ingress-nginx
+kubectl get svc -n ingress-nginx
+
+5. Create two pods and their service (type clusterIP) and also create ingress resource (rule).
+
+kubectl create deployment web --image=httpd --port=80
+kubectl expose deployment web
+
+kubectl create deployment nginx --image=nginx --port=80
+kubectl expose deployment nginx
+
+vim ingress.yaml  --- Change the load balancer endpoint to your loadbalancer
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minimal-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: "a0d3399b2b6fa476bbcfe478b0b0a028-1297948568.us-east-1.elb.amazonaws.com"
+    http:
+      paths:
+      - path: /apple
+        pathType: Prefix
+        backend:
+          service:
+            name: web
+            port:
+              number: 80
+  - host: "a0d3399b2b6fa476bbcfe478b0b0a028-1297948568.us-east-1.elb.amazonaws.com"
+    http:
+      paths:
+      - path: /banana
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx
+            port:
+              number: 80
+
+6. Test the urls
+http://a0d3399b2b6fa476bbcfe478b0b0a028-1297948568.us-east-1.elb.amazonaws.com/apple
+It should direct you to httpd pod
+
+http://a0d3399b2b6fa476bbcfe478b0b0a028-1297948568.us-east-1.elb.amazonaws.com/apple
+It should direct you to nginx pod
+
+7. Destroy the cluster
+eksctl delete cluster --region=us-east-1 --name=democluster
