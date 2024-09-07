@@ -1,5 +1,9 @@
 1. Launch a virtual machine and install eksctl utlity and deploy AWS EKS cluster using eksctl
 
+# aws configure
+- accessKey
+- secretKey
+
 https://eksctl.io/installation/
 
 # eksctl create cluster --name my-cluster --region us-east-1
